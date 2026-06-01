@@ -41,14 +41,32 @@ UML Sequence Diagram:
     participant API as History Tracker API
     participant ES as Event Store
 
-    MS->>API: HTTP Request (GET/POST/PUT)
-    activate API
-
-    API->>API: Validate Authorization
-    API->>API: Parse URL / Query / Body
-
-    API->>ES: Perform Operation (add/search/get/update)
-    ES-->>API: Result Data
-
-    API-->>MS: HTTP Response (JSON)
-    deactivate API# History-and-Event-Tracker
+User / Client                       API Web Service                     EventStore / Data File
+     │                                    │                                    │
+     │─── 1. Send API Request ──────────>│                                    │
+     │    GET / POST / PUT endpoint       │                                    │
+     │                                    │                                    │
+     │                                    │─── 2. Check Authorization ───────┐ │
+     │                                    │◄─────────────────────────────────┘ │
+     │                                    │                                    │
+     │                                    │◄── 3. [FAIL] Missing/Bad Token ──│
+     │◄── 4. 401 Unauthorized JSON ──────│                                    │
+     │                                    │                                    │
+     │                                    │─── 5. [PASS] Route Request ──────┐ │
+     │                                    │◄─────────────────────────────────┘ │
+     │                                    │                                    │
+     │                                    │─── 6. Read/Validate Request Data ┐│
+     │                                    │◄─────────────────────────────────┘│
+     │                                    │                                    │
+     │                                    │◄── 7. [FAIL] Bad JSON/Fields ────│
+     │◄── 8. 400 Bad Request JSON ───────│                                    │
+     │                                    │                                    │
+     │                                    │─── 9. Read, Search, Add, or Update│
+     │                                    │    Event Data ──────────────────>│
+     │                                    │                                    │
+     │                                    │◄── 10. Event Data / Save Complete│
+     │                                    │                                    │
+     │◄── 11. 200/201 Success JSON ──────│                                    │
+     │                                    │                                    │
+     │─── 12. Unknown Endpoint ─────────>│                                    │
+     │◄── 13. 404 NotFound JSON ─────────│                                    │
