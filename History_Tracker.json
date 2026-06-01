@@ -1,0 +1,581 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "History and Event Log Tracker API",
+    "version": "1.0.0",
+    "description": "API specification for Microservice 3. This service records system events, retrieves chronological event history, and searches event logs by criteria such as event type, timestamp range, user, and source."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Events",
+      "description": "Create, retrieve, and search system event logs."
+    }
+  ],
+  "paths": {
+    "/events": {
+      "post": {
+        "tags": ["Events"],
+        "summary": "Create a new event log entry",
+        "description": "Records a system event such as a save, load, validation attempt, update, delete, login, logout, or error.",
+        "operationId": "createEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEventRequest"
+              },
+              "examples": {
+                "saveEvent": {
+                  "summary": "Save event",
+                  "value": {
+                    "eventType": "SAVE",
+                    "source": "DocumentService",
+                    "userId": "user123",
+                    "description": "User saved a document",
+                    "metadata": {
+                      "documentId": "doc456"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Event successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "get": {
+        "tags": ["Events"],
+        "summary": "Retrieve event history",
+        "description": "Returns logged events in chronological order. Supports pagination and sort direction.",
+        "operationId": "getEvents",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/events/search": {
+      "get": {
+        "tags": ["Events"],
+        "summary": "Search events by criteria",
+        "description": "Searches event logs by event type, timestamp range, user ID, and source service.",
+        "operationId": "searchEvents",
+        "parameters": [
+          {
+            "name": "eventType",
+            "in": "query",
+            "required": false,
+            "description": "Filter events by type.",
+            "schema": {
+              "$ref": "#/components/schemas/EventType"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "description": "Return events at or after this timestamp. Must use ISO 8601 format.",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-05-01T00:00:00Z"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "description": "Return events at or before this timestamp. Must use ISO 8601 format.",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-05-19T23:59:59Z"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "description": "Filter events by user ID.",
+            "schema": {
+              "type": "string",
+              "example": "user123"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Filter events by the service or component that produced the event.",
+            "schema": {
+              "type": "string",
+              "example": "DocumentService"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/events/{eventId}": {
+      "get": {
+        "tags": ["Events"],
+        "summary": "Retrieve a single event",
+        "description": "Returns one event by its unique ID.",
+        "operationId": "getEventById",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "description": "Unique event identifier.",
+            "schema": {
+              "type": "string",
+              "example": "evt_01HXYZ123"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Returns service health status for monitoring.",
+        "operationId": "getHealth",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Maximum number of events to return.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000,
+          "default": 100
+        }
+      },
+      "Offset": {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "description": "Number of events to skip before returning results.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "description": "Sort order by timestamp.",
+        "schema": {
+          "type": "string",
+          "enum": ["asc", "desc"],
+          "default": "asc"
+        }
+      }
+    },
+    "schemas": {
+      "EventType": {
+        "type": "string",
+        "description": "Type of system event.",
+        "enum": [
+          "SAVE",
+          "LOAD",
+          "VALIDATION_ATTEMPT",
+          "VALIDATION_SUCCESS",
+          "VALIDATION_FAILURE",
+          "ERROR",
+          "UPDATE",
+          "DELETE",
+          "LOGIN",
+          "LOGOUT"
+        ],
+        "example": "SAVE"
+      },
+      "CreateEventRequest": {
+        "type": "object",
+        "required": ["eventType", "source", "description"],
+        "properties": {
+          "eventType": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "source": {
+            "type": "string",
+            "description": "Service or component that produced the event.",
+            "minLength": 1,
+            "example": "DocumentService"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Optional ID of the user associated with the event.",
+            "example": "user123"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable event description.",
+            "minLength": 1,
+            "example": "User saved a document"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional event-specific details.",
+            "additionalProperties": true,
+            "example": {
+              "documentId": "doc456"
+            }
+          }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "required": ["id", "eventType", "source", "description", "timestamp"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique event ID assigned by the service.",
+            "example": "evt_01HXYZ123"
+          },
+          "eventType": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "source": {
+            "type": "string",
+            "example": "DocumentService"
+          },
+          "userId": {
+            "type": "string",
+            "example": "user123"
+          },
+          "description": {
+            "type": "string",
+            "example": "User saved a document"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated event timestamp in ISO 8601 format.",
+            "example": "2026-05-19T18:30:00Z"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "example": {
+              "documentId": "doc456"
+            }
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "required": ["limit", "offset", "total"],
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "example": 100
+          },
+          "offset": {
+            "type": "integer",
+            "example": 0
+          },
+          "total": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "EventListResponse": {
+        "type": "object",
+        "required": ["events", "pagination"],
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "SearchFilters": {
+        "type": "object",
+        "properties": {
+          "eventType": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-01T00:00:00Z"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-19T23:59:59Z"
+          },
+          "userId": {
+            "type": "string",
+            "example": "user123"
+          },
+          "source": {
+            "type": "string",
+            "example": "DocumentService"
+          }
+        }
+      },
+      "SearchEventResponse": {
+        "type": "object",
+        "required": ["events", "filters", "pagination"],
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            }
+          },
+          "filters": {
+            "$ref": "#/components/schemas/SearchFilters"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status", "service"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "service": {
+            "type": "string",
+            "example": "history-event-tracker"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error", "message"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "InvalidEventPayload"
+          },
+          "message": {
+            "type": "string",
+            "example": "eventType, source, and description are required."
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Request validation failed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "InvalidEventPayload",
+              "message": "eventType, source, and description are required."
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Authentication is required",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Unauthorized",
+              "message": "Authentication is required."
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Requested event was not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "EventNotFound",
+              "message": "No event was found with the provided ID."
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Unexpected server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "InternalServerError",
+              "message": "An unexpected error occurred while processing the request."
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-acceptanceCriteria": {
+    "recordSystemEvents": {
+      "performance": "Creating an event should complete within 200 ms during normal operation.",
+      "reliability": "Events should be written to persistent storage so normal service operation does not lose event records."
+    },
+    "retrieveEventHistory": {
+      "performance": "Retrieving history should complete within 500 ms for up to 10,000 events.",
+      "security": "Only authorized clients may access event history."
+    },
+    "searchEventsByCriteria": {
+      "accuracy": "Search results must match the provided filter criteria exactly.",
+      "efficiency": "Search should complete within 300 ms for up to 5,000 events."
+    }
+  }
+}
